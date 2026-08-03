@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Balance Preview</title>
+  <title>Monopoly Game</title>
   <link rel="icon" href="data:,">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       padding: 0;
@@ -15,6 +19,92 @@
       align-items: center;
       background-color: #121212;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    /* Экран входа (по умолчанию виден) */
+    #login-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_start');
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      z-index: 10;
+      padding: 20px;
+    }
+
+    /* Затемнение для читаемости элементов на фоне */
+    #login-screen::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: -1;
+    }
+
+    /* Поле ввода имени */
+    .login-input {
+      width: 260px;
+      max-width: 80%;
+      padding: 14px 20px;
+      font-size: 16px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 25px;
+      outline: none;
+      text-align: center;
+    }
+
+    .login-input::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Кнопка подключиться */
+    .login-btn {
+      width: 260px;
+      max-width: 80%;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #000;
+      background: #2ecc71;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+      box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+    }
+
+    .login-btn:hover {
+      background: #27ae60;
+      transform: scale(1.03);
+    }
+
+    .login-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Игровой интерфейс (скрыт до входа) */
+    #game-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
     }
 
     /* Контейнер бара */
@@ -75,17 +165,45 @@
 </head>
 <body>
 
-  <div class="balance-bar">
-    <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_money.png" alt="Coin" class="coin-icon">
-    <span class="balance-amount" id="balance">1500 €</span>
-    <button class="add-btn" id="addBtn" aria-label="Пополнить баланс">+</button>
+  <!-- Экран входа -->
+  <div id="login-screen">
+    <input type="text" id="usernameInput" class="login-input" placeholder="Введите ваше имя" autocomplete="off">
+    <button id="loginBtn" class="login-btn">Подключиться</button>
+  </div>
+
+  <!-- Игровой экран (с баром баланса) -->
+  <div id="game-screen">
+    <div class="balance-bar">
+      <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_money.png" alt="Coin" class="coin-icon">
+      <span class="balance-amount" id="balance">1500 €</span>
+      <button class="add-btn" id="addBtn" aria-label="Пополнить баланс">+</button>
+    </div>
   </div>
 
   <script>
+    const loginScreen = document.getElementById('login-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const usernameInput = document.getElementById('usernameInput');
+    const loginBtn = document.getElementById('loginBtn');
+
     let currentBalance = 1500;
     const balanceElement = document.getElementById('balance');
     const addBtn = document.getElementById('addBtn');
 
+    // Обработка клика по кнопке входа
+    loginBtn.addEventListener('click', () => {
+      const name = usernameInput.value.trim();
+      if (name === '') {
+        alert('Пожалуйста, введите имя!');
+        return;
+      }
+      
+      // Скрываем экран входа, показываем игровой
+      loginScreen.style.display = 'none';
+      gameScreen.style.display = 'flex';
+    });
+
+    // Обработка пополнения баланса
     addBtn.addEventListener('click', () => {
       currentBalance += 100;
       balanceElement.textContent = `${currentBalance} €`;
