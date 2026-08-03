@@ -22,16 +22,18 @@
       overflow: hidden;
     }
 
-    /* Экран входа (по умолчанию виден) */
+    /* Экран входа */
     #login-screen {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-image: url('https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_start.jpg');
+      background: linear-gradient(135deg, #1e1e2f 0%, #0f0f18 100%), 
+                  url('https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_start.png');
       background-size: cover;
       background-position: center;
+      background-repeat: no-repeat;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -41,7 +43,6 @@
       padding: 20px;
     }
 
-    /* Затемнение для читаемости элементов на фоне */
     #login-screen::before {
       content: '';
       position: absolute;
@@ -53,7 +54,6 @@
       z-index: -1;
     }
 
-    /* Поле ввода имени */
     .login-input {
       width: 260px;
       max-width: 80%;
@@ -72,7 +72,6 @@
       color: rgba(255, 255, 255, 0.7);
     }
 
-    /* Кнопка подключиться */
     .login-btn {
       width: 260px;
       max-width: 80%;
@@ -97,69 +96,113 @@
       transform: scale(0.97);
     }
 
-    /* Игровой интерфейс (скрыт до входа) */
+    /* Игровой экран */
     #game-screen {
       display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
+      background-color: #121212; /* Здесь потом можно будет сделать игровой фон */
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      padding: 16px;
     }
 
-    /* Контейнер бара */
-    .balance-bar {
+    /* Верхняя панель (шапка игры) */
+    .game-header {
+      width: 100%;
       display: flex;
-      align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    /* Левая часть: профиль + баланс */
+    .player-profile-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(8px);
-      padding: 8px 16px;
-      border-radius: 20px;
+      padding: 10px 14px;
+      border-radius: 18px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     }
 
-    /* Иконка монетки */
+    /* Игрок (аватар + имя) */
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .player-name {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Баланс (иконка монеты + сумма) */
+    .balance-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 2px;
+    }
+
     .coin-icon {
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       object-fit: contain;
     }
 
-    /* Баланс */
     .balance-amount {
       color: #2ecc71;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       letter-spacing: 0.5px;
     }
 
-    /* Кнопка пополнения */
-    .add-btn {
-      background: #2ecc71;
-      color: #000;
-      border: none;
-      width: 28px;
-      height: 28px;
+    /* Кнопка настроек в правом верхнем углу */
+    .settings-btn {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      font-size: 18px;
-      font-weight: bold;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
       transition: transform 0.1s ease, background-color 0.2s ease;
-      user-select: none;
+      padding: 0;
     }
 
-    .add-btn:hover {
-      background: #27ae60;
-      transform: scale(1.08);
+    .settings-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
     }
 
-    .add-btn:active {
+    .settings-btn:active {
       transform: scale(0.95);
+    }
+
+    .settings-icon {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
     }
   </style>
 </head>
@@ -171,12 +214,29 @@
     <button id="loginBtn" class="login-btn">Подключиться</button>
   </div>
 
-  <!-- Игровой экран (с баром баланса) -->
+  <!-- Игровой экран -->
   <div id="game-screen">
-    <div class="balance-bar">
-      <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_money.png" alt="Coin" class="coin-icon">
-      <span class="balance-amount" id="balance">1500 €</span>
-      <button class="add-btn" id="addBtn" aria-label="Пополнить баланс">+</button>
+    <div class="game-header">
+      
+      <!-- Левый блок: Игрок и Баланс -->
+      <div class="player-profile-bar">
+        <!-- Иконка игрока и имя -->
+        <div class="player-info">
+          <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_player.png" alt="Player" class="player-icon">
+          <span class="player-name" id="displayName">Игрок</span>
+        </div>
+        <!-- Иконка монеты и баланс -->
+        <div class="balance-info">
+          <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_money.png" alt="Coin" class="coin-icon">
+          <span class="balance-amount" id="balance">1500 €</span>
+        </div>
+      </div>
+
+      <!-- Правый верхний угол: Кнопка настроек -->
+      <button class="settings-btn" id="settingsBtn" aria-label="Настройки">
+        <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_setings.png" alt="Settings" class="settings-icon">
+      </button>
+
     </div>
   </div>
 
@@ -185,12 +245,10 @@
     const gameScreen = document.getElementById('game-screen');
     const usernameInput = document.getElementById('usernameInput');
     const loginBtn = document.getElementById('loginBtn');
+    const displayName = document.getElementById('displayName');
+    const settingsBtn = document.getElementById('settingsBtn');
 
-    let currentBalance = 1500;
-    const balanceElement = document.getElementById('balance');
-    const addBtn = document.getElementById('addBtn');
-
-    // Обработка клика по кнопке входа
+    // Клик по «Подключиться»
     loginBtn.addEventListener('click', () => {
       const name = usernameInput.value.trim();
       if (name === '') {
@@ -198,15 +256,17 @@
         return;
       }
       
-      // Скрываем экран входа, показываем игровой
+      // Переносим введённое имя на игровой экран
+      displayName.textContent = name;
+
+      // Переключаем экраны
       loginScreen.style.display = 'none';
       gameScreen.style.display = 'flex';
     });
 
-    // Обработка пополнения баланса
-    addBtn.addEventListener('click', () => {
-      currentBalance += 100;
-      balanceElement.textContent = `${currentBalance} €`;
+    // Клик по кнопке настроек (пока просто пример действия)
+    settingsBtn.addEventListener('click', () => {
+      alert('Открытие настроек игры');
     });
   </script>
 
