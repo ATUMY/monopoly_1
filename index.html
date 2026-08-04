@@ -2,273 +2,160 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monopoly Game</title>
-  <link rel="icon" href="data:,">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Monopoly TG Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #121212;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      overflow: hidden;
-    }
-
-    /* Экран входа */
-    #login-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #1e1e2f 0%, #0f0f18 100%), 
-                  url('https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_start.png');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 16px;
-      z-index: 10;
-      padding: 20px;
-    }
-
-    #login-screen::before {
-      content: '';
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html { width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
+    
+    .screen {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.4);
-      z-index: -1;
+      width: 100vw;
+      height: 100vh;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
-    .login-input {
-      width: 260px;
-      max-width: 80%;
-      padding: 14px 20px;
-      font-size: 16px;
-      color: #fff;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 25px;
+    .active { display: flex !important; }
+
+    #auth-screen {
+      background-image: url('https://raw.githubusercontent.com/ATUMY/monopoly_go/main/assets/icon_start.png');
+    }
+
+    #hello-screen {
+      background-image: url('https://raw.githubusercontent.com/ATUMY/monopoly_go/main/assets/icon_hello.png');
+    }
+
+    #room-screen {
+      background-image: url('https://raw.githubusercontent.com/ATUMY/monopoly_go/main/assets/icon_roomfons.png');
+    }
+
+    .input-field {
+      width: 80%;
+      max-width: 300px;
+      padding: 14px 18px;
+      font-size: 18px;
+      border: 2px solid #ffffff;
+      border-radius: 12px;
       outline: none;
       text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      margin-bottom: 15px;
     }
 
-    .login-input::placeholder {
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    .login-btn {
-      width: 260px;
-      max-width: 80%;
-      padding: 14px 20px;
-      font-size: 16px;
+    .btn-red {
+      width: 80%;
+      max-width: 300px;
+      padding: 14px;
+      font-size: 18px;
       font-weight: bold;
-      color: #000;
-      background: #2ecc71;
+      color: #ffffff;
+      background-color: #e74c3c;
       border: none;
-      border-radius: 25px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: background 0.2s ease, transform 0.1s ease;
-      box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: background 0.2s;
     }
 
-    .login-btn:hover {
-      background: #27ae60;
-      transform: scale(1.03);
+    .btn-red:active {
+      background-color: #c0392b;
     }
 
-    .login-btn:active {
-      transform: scale(0.97);
-    }
-
-    /* Игровой экран */
-    #game-screen {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #121212; /* Здесь потом можно будет сделать игровой фон */
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: flex-start;
-      padding: 16px;
-    }
-
-    /* Верхняя панель (шапка игры) */
-    .game-header {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    /* Левая часть: профиль + баланс */
-    .player-profile-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(8px);
-      padding: 10px 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Игрок (аватар + имя) */
-    .player-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .player-icon {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-      border-radius: 50%;
-    }
-
-    .player-name {
-      color: #fff;
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    /* Баланс (иконка монеты + сумма) */
-    .balance-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding-left: 2px;
-    }
-
-    .coin-icon {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-    }
-
-    .balance-amount {
-      color: #2ecc71;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
-    /* Кнопка настроек в правом верхнем углу */
-    .settings-btn {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      transition: transform 0.1s ease, background-color 0.2s ease;
-      padding: 0;
-    }
-
-    .settings-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.05);
-    }
-
-    .settings-btn:active {
-      transform: scale(0.95);
-    }
-
-    .settings-icon {
-      width: 22px;
-      height: 22px;
-      object-fit: contain;
+    .welcome-text {
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      margin-bottom: 30px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <!-- Экран входа -->
-  <div id="login-screen">
-    <input type="text" id="usernameInput" class="login-input" placeholder="Введите ваше имя" autocomplete="off">
-    <button id="loginBtn" class="login-btn">Подключиться</button>
+  <!-- 1. Экран входа -->
+  <div id="auth-screen" class="screen active">
+    <input type="text" id="username-input" class="input-field" placeholder="Введите имя..." maxlength="15">
+    <button class="btn-red" id="btn-enter-id">ВОЙТИ</button>
   </div>
 
-  <!-- Игровой экран -->
-  <div id="game-screen">
-    <div class="game-header">
-      
-      <!-- Левый блок: Игрок и Баланс -->
-      <div class="player-profile-bar">
-        <!-- Иконка игрока и имя -->
-        <div class="player-info">
-          <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_player.png" alt="Player" class="player-icon">
-          <span class="player-name" id="displayName">Игрок</span>
-        </div>
-        <!-- Иконка монеты и баланс -->
-        <div class="balance-info">
-          <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_money.png" alt="Coin" class="coin-icon">
-          <span class="balance-amount" id="balance">1500 €</span>
-        </div>
-      </div>
+  <!-- 2. Экран приветствия -->
+  <div id="hello-screen" class="screen">
+    <div id="welcome-message" class="welcome-text">Привет!</div>
+    <button class="btn-red" id="btn-start-id">НАЧАТЬ ИГРУ</button>
+  </div>
 
-      <!-- Правый верхний угол: Кнопка настроек -->
-      <button class="settings-btn" id="settingsBtn" aria-label="Настройки">
-        <img src="https://raw.githubusercontent.com/ATUMY/monopoly_1/main/assets/icon_setings.png" alt="Settings" class="settings-icon">
-      </button>
-
-    </div>
+  <!-- 3. Экран игровой комнаты -->
+  <div id="room-screen" class="screen">
+    <div class="welcome-text">Игровая комната</div>
   </div>
 
   <script>
-    const loginScreen = document.getElementById('login-screen');
-    const gameScreen = document.getElementById('game-screen');
-    const usernameInput = document.getElementById('usernameInput');
-    const loginBtn = document.getElementById('loginBtn');
-    const displayName = document.getElementById('displayName');
-    const settingsBtn = document.getElementById('settingsBtn');
+    // Инициализация Telegram Mini App
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
 
-    // Клик по «Подключиться»
-    loginBtn.addEventListener('click', () => {
-      const name = usernameInput.value.trim();
-      if (name === '') {
+    // Подключение Supabase
+    const SUPABASE_URL = 'https://lfqkojfgkgrzvcrritpd.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcWtvamZna2dyenZjcnJpdHBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MjYzNzYsImV4cCI6MjEwMTQwMjM3Nn0.VAgSdmfH-Gke95a_sNv7hvs2XhPNWAs9CRTBIuLVfFc'; 
+    
+    let supabaseClient = null;
+    if (window.supabase) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+
+    // Автоподстановка имени из Telegram
+    document.addEventListener('DOMContentLoaded', () => {
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        const input = document.getElementById('username-input');
+        if (input && user.first_name) {
+          input.value = user.first_name;
+        }
+      }
+
+      // Привязываем клики к кнопкам
+      document.getElementById('btn-enter-id').addEventListener('click', enterGame);
+      document.getElementById('btn-start-id').addEventListener('click', goToRoom);
+    });
+
+    function enterGame() {
+      const input = document.getElementById('username-input');
+      const name = input ? input.value.trim() : '';
+      
+      if (!name) {
         alert('Пожалуйста, введите имя!');
         return;
       }
       
-      // Переносим введённое имя на игровой экран
-      displayName.textContent = name;
+      localStorage.setItem('monopoly_user_name', name);
+      document.getElementById('welcome-message').innerText = 'Привет, ' + name + '!';
 
-      // Переключаем экраны
-      loginScreen.style.display = 'none';
-      gameScreen.style.display = 'flex';
-    });
+      // Переход на экран приветствия
+      document.getElementById('auth-screen').classList.remove('active');
+      document.getElementById('hello-screen').classList.add('active');
+    }
 
-    // Клик по кнопке настроек (пока просто пример действия)
-    settingsBtn.addEventListener('click', () => {
-      alert('Открытие настроек игры');
-    });
+    function goToRoom() {
+      // Переход в игровую комнату
+      document.getElementById('hello-screen').classList.remove('active');
+      document.getElementById('room-screen').classList.add('active');
+    }
   </script>
-
 </body>
 </html>
