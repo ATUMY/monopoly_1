@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Monopoly Board</title>
+  <style>
+    :root {
+      --board-size: 560px;
+      --cell-size: calc(var(--board-size) / 11);
+      --bg-color: #12131C;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1e2235 0%, var(--bg-color) 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    /* 3D Сцена */
+    .scene {
+      width: var(--board-size);
+      height: var(--board-size);
+      perspective: 1100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .board-3d {
+      width: var(--board-size);
+      height: var(--board-size);
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(52deg) rotateZ(-38deg);
+      transition: transform 0.5s ease-out;
+      box-shadow: -20px 20px 50px rgba(0, 0, 0, 0.6);
+      border-radius: 8px;
+    }
+
+    /* Поле Монополии */
+    .board-surface {
+      width: 100%;
+      height: 100%;
+      background-color: #cbe6d4;
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      grid-template-rows: repeat(11, 1fr);
+      border: 4px solid #2e4033;
+      position: relative;
+      border-radius: 6px;
+    }
+
+    /* Центр поля */
+    .center-space {
+      grid-column: 2 / 11;
+      grid-row: 2 / 11;
+      background: linear-gradient(135deg, #b8dcbe 0%, #a2d2a9 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    /* Ячейки */
+    .cell {
+      border: 1px solid #2e4033;
+      position: relative;
+      background-color: #e8f5e9;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: hidden;
+      transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    }
+
+    /* Цветовые полосы Монополии */
+    .color-bar {
+      position: absolute;
+      background-color: var(--bar-color, transparent);
+    }
+
+    /* Позиционирование цветовых полос для разных сторон */
+    .side-bottom .color-bar { top: 0; left: 0; right: 0; height: 28%; }
+    .side-left .color-bar   { top: 0; bottom: 0; right: 0; width: 28%; }
+    .side-top .color-bar    { bottom: 0; left: 0; right: 0; height: 28%; }
+    .side-right .color-bar  { top: 0; bottom: 0; left: 0; width: 28%; }
+
+    /* Активное состояние ячейки (подсветка при прохождении) */
+    .cell.active {
+      background-color: #ffffff !important;
+      box-shadow: inset 0 0 12px var(--bar-color, #ffeb3b), 0 0 15px var(--bar-color, #ffeb3b);
+      z-index: 5;
+    }
+
+    /* Угловые особые стили */
+    .corner {
+      background-color: #f0f4f1;
+    }
+
+    /* 3D Фишка-кубик */
+    .dice-token {
+      width: calc(var(--cell-size) * 0.55);
+      height: calc(var(--cell-size) * 0.55);
+      position: absolute;
+      transform-style: preserve-3d;
+      transition: left 0.25s ease-in-out, top 0.25s ease-in-out, transform 0.25s ease-in-out;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(-20deg) rotateY(25deg);
+      transition: transform 0.2s;
+    }
+
+    .face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+      border: 1.5px solid #a0a0a0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    /* Грани 3D кубика */
+    .face.front  { transform: translateZ(calc(var(--cell-size) * 0.275)); }
+    .face.back   { transform: rotateY(180deg) translateZ(calc(var(--cell-size) * 0.275)); }
+    .face.right  { transform: rotateY(90deg) translateZ(calc(var(--cell-size) * 0.275)); }
+    .face.left   { transform: rotateY(-90deg) translateZ(calc(var(--cell-size) * 0.275)); }
+    .face.top    { transform: rotateX(90deg) translateZ(calc(var(--cell-size) * 0.275)); }
+    .face.bottom { transform: rotateX(-90deg) translateZ(calc(var(--cell-size) * 0.275)); }
+
+    /* Прыжок кубика */
+    .dice-token.jumping .cube {
+      transform: translateZ(35px) rotateX(160deg) rotateY(180deg);
+    }
+
+    /* Тень фишки */
+    .token-shadow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 50%;
+      filter: blur(4px);
+      transform: scale(0.8);
+      transition: all 0.25s;
+    }
+
+    .dice-token.jumping .token-shadow {
+      transform: scale(0.4);
+      opacity: 0.2;
+    }
+
+    /* Интерфейс управления */
+    .controls {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      z-index: 10;
+    }
+
+    .roll-btn {
+      padding: 16px 45px;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #fff;
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(255, 75, 43, 0.4), 0 4px 0 #b32b15;
+      transition: all 0.15s ease;
+      outline: none;
+    }
+
+    .roll-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(255, 75, 43, 0.5), 0 6px 0 #b32b15;
+    }
+
+    .roll-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 4px 10px rgba(255, 75, 43, 0.4), 0 1px 0 #b32b15;
+    }
+
+    .roll-btn:disabled {
+      background: #555;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .info-panel {
+      font-size: 18px;
+      font-weight: 600;
+      min-height: 27px;
+      color: #e0e6ed;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene">
+    <div class="board-3d">
+      <div class="board-surface" id="board">
+        <div class="center-space"></div>
+      </div>
+
+      <!-- 3D Токен-кубик -->
+      <div class="dice-token" id="token">
+        <div class="token-shadow"></div>
+        <div class="cube">
+          <div class="face front">🎲</div>
+          <div class="face back">🎲</div>
+          <div class="face right">🎲</div>
+          <div class="face left">🎲</div>
+          <div class="face top">🎲</div>
+          <div class="face bottom">🎲</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="roll-btn" id="rollBtn">ХОД</button>
+    <div class="info-panel" id="info">Нажмите кнопку «ХОД»</div>
+  </div>
+
+  <script>
+    // Цветовая схема Монополии для 40 ячеек (по часовой стрелке)
+    // 0 = Старт (Нижний правый угол)
+    const boardColors = [
+      null,                // 0: Start (Нижний правый)
+      '#8B4513', null, '#8B4513', null, '#a0a0a0', '#87CEEB', null, '#87CEEB', '#87CEEB', // 1-9 (Нижняя сторона)
+      null,                // 10: Тюрьма (Нижний левый)
+      '#FF007F', null, '#FF007F', '#FF007F', '#a0a0a0', '#FF8C00', null, '#FF8C00', '#FF8C00', // 11-19 (Левая сторона)
+      null,                // 20: Бесплатная парковка (Верхний левый)
+      '#FF0000', null, '#FF0000', '#FF0000', '#a0a0a0', '#FFD700', '#FFD700', null, '#FFD700', // 21-29 (Верхняя сторона)
+      null,                // 30: В тюрьму (Верхний правый)
+      '#008000', '#008000', null, '#008000', '#a0a0a0', null, '#00008B', null, '#00008B'  // 31-39 (Правая сторона)
+    ];
+
+    // Генерация порядка сетки 11х11 по часовой стрелке, начиная с нижнего правого угла (10, 10)
+    function generatePathCoords() {
+      const coords = [];
+      
+      // Нижняя сторона (справа налево): Y=10, X=10..0
+      for (let x = 10; x >= 0; x--) coords.push({ col: x, row: 10, side: 'side-bottom' });
+      // Левая сторона (снизу вверх): X=0, Y=9..0
+      for (let y = 9; y >= 0; y--) coords.push({ col: 0, row: y, side: 'side-left' });
+      // Верхняя сторона (слева направо): Y=0, X=1..10
+      for (let x = 1; x <= 10; x++) coords.push({ col: x, row: 0, side: 'side-top' });
+      // Правая сторона (сверху вниз): X=10, Y=1..9
+      for (let y = 1; y <= 9; y++) coords.push({ col: 10, row: y, side: 'side-right' });
+
+      return coords;
+    }
+
+    const pathCoords = generatePathCoords();
+    const cellsMap = [];
+    let currentPosition = 0;
+    let isMoving = false;
+
+    // Инициализация игрового поля
+    function initBoard() {
+      const board = document.getElementById('board');
+
+      pathCoords.forEach((pos, index) => {
+        const cell = document.createElement('div');
+        cell.className = `cell ${pos.side}`;
+        cell.style.gridColumn = pos.col + 1;
+        cell.style.gridRow = pos.row + 1;
+
+        const color = boardColors[index];
+        if (color) {
+          cell.style.setProperty('--bar-color', color);
+          const colorBar = document.createElement('div');
+          colorBar.className = 'color-bar';
+          cell.appendChild(colorBar);
+        } else {
+          cell.classList.add('corner');
+        }
+
+        board.appendChild(cell);
+        cellsMap[index] = cell;
+      });
+
+      // Помещаем фишку на Старт (0)
+      updateTokenPosition(0, false);
+    }
+
+    // Расчет 2D/3D координат ячейки для точного размещения кубика
+    function updateTokenPosition(index, animate = true) {
+      const token = document.getElementById('token');
+      const targetCell = cellsMap[index];
+
+      const cellRect = targetCell.getBoundingClientRect();
+      const boardRect = document.getElementById('board').getBoundingClientRect();
+
+      // Вычисление относительного смещения внутри поля
+      const left = targetCell.offsetLeft + (targetCell.offsetWidth - token.offsetWidth) / 2;
+      const top = targetCell.offsetTop + (targetCell.offsetHeight - token.offsetHeight) / 2;
+
+      token.style.left = `${left}px`;
+      token.style.top = `${top}px`;
+
+      if (animate) {
+        token.classList.add('jumping');
+        setTimeout(() => token.classList.remove('jumping'), 200);
+      }
+    }
+
+    // Эффект подсвечивания ячейки
+    function highlightCell(index) {
+      const cell = cellsMap[index];
+      cell.classList.add('active');
+      setTimeout(() => {
+        cell.classList.remove('active');
+      }, 500);
+    }
+
+    // Логика хода
+    async function makeMove() {
+      if (isMoving) return;
+      isMoving = true;
+
+      const rollBtn = document.getElementById('rollBtn');
+      const info = document.getElementById('info');
+      rollBtn.disabled = true;
+
+      // Выпадение случайного числа от 1 до 6
+      const steps = Math.floor(Math.random() * 6) + 1;
+      info.textContent = `Выпало число: ${steps}`;
+
+      // Пошаговый прыжок по клеткам
+      for (let i = 0; i < steps; i++) {
+        currentPosition = (currentPosition + 1) % 40;
+        
+        updateTokenPosition(currentPosition, true);
+        highlightCell(currentPosition);
+
+        // Задержка между прыжками
+        await new Promise(resolve => setTimeout(resolve, 280));
+      }
+
+      rollBtn.disabled = false;
+      isMoving = false;
+    }
+
+    // Слушатель событий
+    document.getElementById('rollBtn').addEventListener('click', makeMove);
+
+    // Запуск после загрузки
+    window.addEventListener('load', () => {
+      initBoard();
+      // Перерасчет при изменении размера окна
+      window.addEventListener('resize', () => updateTokenPosition(currentPosition, false));
+    });
+  </script>
+</body>
+  </html>
+
