@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Monopoly Three.js</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- Подключаем Three.js через CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/org/three.js/r128/three.min.js"></script>
+  
+  <script>
+    // 1. Сцена, камера, рендер
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x3a5f3a);
+
+    // Ортографическая камера дает четкую изометрическую проекцию без искажения перспектив
+    const aspect = window.innerWidth / window.innerHeight;
+    const d = 10;
+    const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+    
+    // Поворачиваем камеру под углом изометрии
+    camera.position.set(20, 20, 20);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // 2. Освещение
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(10, 20, 10);
+    scene.add(dirLight);
+
+    // 3. Создание игрового поля (основание)
+    const boardGeometry = new THREE.BoxGeometry(12, 0.5, 12);
+    const boardMaterial = new THREE.MeshLambertMaterial({ color: 0x8cb89f });
+    const boardMesh = new THREE.Mesh(boardGeometry, boardMaterial);
+    scene.add(boardMesh);
+
+    // 4. Генерация 3D-тайлов по периметру
+    const tileSize = 1.5;
+    const tilesGroup = new THREE.Group();
+
+    for (let i = -5; i <= 5; i++) {
+      createTile(i * 1.1, 0.3, 5.5);  // Южный край
+      createTile(i * 1.1, 0.3, -5.5); // Северный край
+      createTile(5.5, 0.3, i * 1.1);  // Восточный край
+      createTile(-5.5, 0.3, i * 1.1); // Западный край
+    }
+
+    function createTile(x, y, z) {
+      const geo = new THREE.BoxGeometry(1, 0.2, 1);
+      const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+      const tile = new THREE.Mesh(geo, mat);
+      tile.position.set(x, y, z);
+      tilesGroup.add(tile);
+    }
+    scene.add(tilesGroup);
+
+    // Главный цикл рендеринга
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
+
