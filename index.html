@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D Monopoly Board</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1e1e24;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    .board-container {
+      position: relative;
+      width: 90vw;
+      max-width: 650px;
+      height: 90vw;
+      max-height: 650px;
+      background-color: #cde6d0;
+      border: 3px solid #222;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: 1.5fr repeat(9, 1fr) 1.5fr;
+      grid-template-rows: 1.5fr repeat(9, 1fr) 1.5fr;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .cell {
+      border: 1px solid #333;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      text-align: center;
+      color: #000;
+      background-color: #e8f5e9;
+      padding: 2px;
+      overflow: hidden;
+      font-weight: bold;
+    }
+
+    /* Угловые клетки */
+    .corner {
+      background-color: #d7ccc8;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    /* Центральная часть карты */
+    .center-board {
+      grid-column: 2 / 11;
+      grid-row: 2 / 11;
+      background: #cde6d0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid #333;
+    }
+
+    .center-title {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #d32f2f;
+      text-transform: uppercase;
+      transform: rotate(-45deg);
+      text-shadow: 2px 2px 0px #000;
+    }
+
+    /* Цветовые полосы */
+    .color-band {
+      width: 100%;
+      height: 15px;
+    }
+
+    /* Ориентация полос в зависимости от стороны */
+    .bottom-row .color-band { order: -1; }
+    .top-row .color-band { order: 1; }
+    .left-row .color-band { width: 15px; height: 100%; order: 1; }
+    .right-row .color-band { width: 15px; height: 100%; order: -1; }
+
+    .left-row { flex-direction: row; }
+    .right-row { flex-direction: row; }
+
+    /* Фишка игрока */
+    .player-token {
+      width: 16px;
+      height: 16px;
+      background-color: #d50000;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      position: absolute;
+      z-index: 10;
+      transition: all 0.25s ease-in-out;
+      box-shadow: 0 0 5px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+
+    /* Панель управления */
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-roll {
+      padding: 12px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      background-color: #2e7d32;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-roll:hover {
+      background-color: #388e3c;
+    }
+
+    .btn-roll:active {
+      transform: scale(0.96);
+    }
+
+    .btn-roll:disabled {
+      background-color: #757575;
+      cursor: not-allowed;
+    }
+
+    .status-text {
+      font-size: 16px;
+      min-height: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="board-container">
+    <div class="board" id="board">
+      <div class="center-board">
+        <div class="center-title">MONOPOLY</div>
+      </div>
+    </div>
+    <div class="player-token" id="player"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-roll" id="rollBtn">БРОСИТЬ</button>
+    <div class="status-text" id="status">Нажмите «БРОСИТЬ», чтобы начать ход</div>
+  </div>
+
+  <script>
+    // Данные клеток (40 штук по периметру 11x11)
+    const cellsData = [
+      { name: "СТАРТ", type: "corner" },
+      { name: "Коричневый 1", color: "#8B4513" },
+      { name: "Шанс", color: "#ccc" },
+      { name: "Коричневый 2", color: "#8B4513" },
+      { name: "Налог", color: "#ccc" },
+      { name: "Вокзал 1", color: "#666" },
+      { name: "Голубой 1", color: "#87CEEB" },
+      { name: "Шанс", color: "#ccc" },
+      { name: "Голубой 2", color: "#87CEEB" },
+      { name: "Голубой 3", color: "#87CEEB" },
+      { name: "ТЮРЬМА", type: "corner" },
+      { name: "Розовый 1", color: "#FF69B4" },
+      { name: "Электро", color: "#ccc" },
+      { name: "Розовый 2", color: "#FF69B4" },
+      { name: "Розовый 3", color: "#FF69B4" },
+      { name: "Вокзал 2", color: "#666" },
+      { name: "Оранжевый 1", color: "#FFA500" },
+      { name: "Казна", color: "#ccc" },
+      { name: "Оранжевый 2", color: "#FFA500" },
+      { name: "Оранжевый 3", color: "#FFA500" },
+      { name: "БЕСПЛАТНАЯ СТОЯНКА", type: "corner" },
+      { name: "Красный 1", color: "#FF0000" },
+      { name: "Шанс", color: "#ccc" },
+      { name: "Красный 2", color: "#FF0000" },
+      { name: "Красный 3", color: "#FF0000" },
+      { name: "Вокзал 3", color: "#666" },
+      { name: "Желтый 1", color: "#FFD700" },
+      { name: "Желтый 2", color: "#FFD700" },
+      { name: "Водопровод", color: "#ccc" },
+      { name: "Желтый 3", color: "#FFD700" },
+      { name: "В ТЮРЬМУ", type: "corner" },
+      { name: "Зеленый 1", color: "#008000" },
+      { name: "Зеленый 2", color: "#008000" },
+      { name: "Казна", color: "#ccc" },
+      { name: "Зеленый 3", color: "#008000" },
+      { name: "Вокзал 4", color: "#666" },
+      { name: "Шанс", color: "#ccc" },
+      { name: "Синий 1", color: "#0000FF" },
+      { name: "Сверхналог", color: "#ccc" },
+      { name: "Синий 2", color: "#0000FF" }
+    ];
+
+    const board = document.getElementById('board');
+    const player = document.getElementById('player');
+    const rollBtn = document.getElementById('rollBtn');
+    const status = document.getElementById('status');
+
+    const cellElements = [];
+    let currentPosition = 0;
+    let isMoving = false;
+
+    // Расчет grid-позиции для 40 клеток по периметру сетки 11х11
+    function getGridPosition(index) {
+      if (index >= 0 && index <= 10) {
+        return { col: 11 - index, row: 11, class: "bottom-row" };
+      } else if (index > 10 && index <= 20) {
+        return { col: 1, row: 11 - (index - 10), class: "left-row" };
+      } else if (index > 20 && index <= 30) {
+        return { col: index - 20 + 1, row: 1, class: "top-row" };
+      } else {
+        return { col: 11, row: index - 30 + 1, class: "right-row" };
+      }
+    }
+
+    // Генерация доски
+    function createBoard() {
+      cellsData.forEach((data, index) => {
+        const pos = getGridPosition(index);
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        if (data.type === 'corner') cell.classList.add('corner');
+        if (pos.class) cell.classList.add(pos.class);
+
+        cell.style.gridColumn = pos.col;
+        cell.style.gridRow = pos.row;
+
+        if (data.color) {
+          const colorBand = document.createElement('div');
+          colorBand.classList.add('color-band');
+          colorBand.style.backgroundColor = data.color;
+          cell.appendChild(colorBand);
+        }
+
+        const title = document.createElement('span');
+        title.innerText = data.name;
+        cell.appendChild(title);
+
+        board.appendChild(cell);
+        cellElements.push(cell);
+      });
+    }
+
+    // Позиционирование фишки на конкретную клетку
+    function updatePlayerPosition(index) {
+      const targetCell = cellElements[index];
+      const rect = targetCell.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
+
+      const x = rect.left - boardRect.left + (rect.width / 2) - 8;
+      const y = rect.top - boardRect.top + (rect.height / 2) - 8;
+
+      player.style.left = `${x}px`;
+      player.style.top = `${y}px`;
+    }
+
+    // Пошаговая анимация движения
+    async function movePlayer(steps) {
+      isMoving = true;
+      rollBtn.disabled = true;
+
+      for (let i = 0; i < steps; i++) {
+        currentPosition = (currentPosition + 1) % 40;
+        updatePlayerPosition(currentPosition);
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      status.innerText = `Вы остановились на: ${cellsData[currentPosition].name}`;
+      isMoving = false;
+      rollBtn.disabled = false;
+    }
+
+    // Обработка клика по кнопке
+    rollBtn.addEventListener('click', () => {
+      if (isMoving) return;
+      
+      const dice = Math.floor(Math.random() * 6) + 1;
+      status.innerText = `Выпало число: ${dice}`;
+      movePlayer(dice);
+    });
+
+    // Инициализация при старте
+    createBoard();
+    window.addEventListener('load', () => updatePlayerPosition(0));
+    window.addEventListener('resize', () => updatePlayerPosition(currentPosition));
+  </script>
+</body>
+</html>
+
